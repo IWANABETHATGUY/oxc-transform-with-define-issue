@@ -18,11 +18,10 @@ jobs:
         uses: actions/checkout@v4 # 通常是好习惯，虽然此特定脚本可能不直接操作文件
 
       - name: Create Issue from PR
-        uses: peter-evans/create-issue-from-file@v5 # 使用一个流行的 action 来创建 issue
+        uses: dacbd/create-issue-action@v2.0.0 # 使用一个流行的 action 来创建 issue
         with:
           token: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub 自动提供的 token
           title: "Doc related to ${{ github.event.pull_request.title }}"
-          content-filepath: "" # 我们将直接在 body 中定义内容，所以留空
           body: |
             This issue is to track documentation tasks related to Pull Request #${{ github.event.pull_request.number }}.
 
