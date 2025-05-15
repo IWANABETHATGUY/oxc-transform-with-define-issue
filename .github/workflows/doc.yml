@@ -21,7 +21,7 @@ jobs:
         uses: dacbd/create-issue-action@v2.0.0 # 使用一个流行的 action 来创建 issue
         with:
           token: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub 自动提供的 token
-          title: "Update doc for #${{github.evnt.pull_request.number}}, `${{ github.event.pull_request.title }}`"
+          title: "Update doc for #${{github.event.pull_request.number}}, `${{ github.event.pull_request.title }}`"
           body: |
             This issue is to track documentation tasks related to Pull Request #${{ github.event.pull_request.number }}.
 
