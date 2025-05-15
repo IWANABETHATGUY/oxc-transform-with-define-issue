@@ -1,26 +1,25 @@
 name: Create Doc Issue on Label
 
 on:
-  pull_request:
-    types: [labeled] # 当 PR 被添加标签时触发
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [labeled]
 
 jobs:
   create_issue_if_doc_label:
-    # 仅当添加的标签是 'doc' 时才运行此作业
-    if: github.event.label.name == 'doc'
+    if: github.event_name == 'pull_request_target' && github.event.label.name == 'doc'
     runs-on: ubuntu-latest
     permissions:
-      issues: write       # 允许创建 issue
-      pull-requests: read # 允许读取 PR 信息 (例如标题和作者)
+      issues: write       
+      pull-requests: read 
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # 通常是好习惯，虽然此特定脚本可能不直接操作文件
+        uses: actions/checkout@v4 
 
       - name: Create Issue from PR
-        uses: dacbd/create-issue-action@v2.0.0 # 使用一个流行的 action 来创建 issue
+        uses: dacbd/create-issue-action@v2.0.0 
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub 自动提供的 token
+          token: ${{ secrets.GITHUB_TOKEN }} 
           title: "Update doc for #${{github.event.pull_request.number}}, `${{ github.event.pull_request.title }}`"
           body: |
             This issue is to track documentation tasks related to Pull Request #${{ github.event.pull_request.number }}.
@@ -30,6 +29,4 @@ jobs:
             **PR Link:** ${{ github.event.pull_request.html_url }}
 
             Please ensure all necessary documentation updates are completed.
-          assignees: ${{ github.event.pull_request.user.login }} # 指派给 PR 的作者
-          # 可选：你也可以给这个新创建的 issue 添加标签
-          # labels: documentation, todo
+          assignees: ${{ github.event.pull_request.user.login }}
