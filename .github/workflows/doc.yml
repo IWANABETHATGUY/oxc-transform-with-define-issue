@@ -1,67 +1,36 @@
-name: Create Doc Issue on Doc Label
+name: Create Doc Issue on Label
 
 on:
   pull_request:
-    types: [labeled]
+    types: [labeled] # 当 PR 被添加标签时触发
 
 jobs:
-  create_doc_issue:
+  create_issue_if_doc_label:
+    # 仅当添加的标签是 'doc' 时才运行此作业
+    if: github.event.label.name == 'doc'
     runs-on: ubuntu-latest
     permissions:
-      issues: write
-      pull-requests: read
+      issues: write       # 允许创建 issue
+      pull-requests: read # 允许读取 PR 信息 (例如标题和作者)
 
     steps:
-      - name: Check for Doc Label
-        if: github.event.label.name == 'doc'
-        run: echo "Doc label found."
+      - name: Checkout code
+        uses: actions/checkout@v4 # 通常是好习惯，虽然此特定脚本可能不直接操作文件
 
-      - name: Get PR Details
-        if: github.event.label.name == 'doc'
-        uses: actions/github-script@v7
-        id: pr_info
+      - name: Create Issue from PR
+        uses: peter-evans/create-issue-from-file@v5 # 使用一个流行的 action 来创建 issue
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            return {
-              title: pr.data.title,
-              author: pr.data.user.login,
-            };
+          token: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub 自动提供的 token
+          title: "Doc related to ${{ github.event.pull_request.title }}"
+          content-filepath: "" # 我们将直接在 body 中定义内容，所以留空
+          body: |
+            This issue is to track documentation tasks related to Pull Request #${{ github.event.pull_request.number }}.
 
-      - name: Create Doc Issue
-        if: github.event.label.name == 'doc'
-        uses: actions/github-script@v7
-        id: create_issue
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const prTitle = steps.pr_info.outputs.title;
-            const issueTitle = `Doc related to '${prTitle}'`;
-            const { data: issue } = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: issueTitle,
-              body: `This issue was automatically created because the 'doc' label was added to the pull request: #${context.payload.pull_request.number}. It is intended to track the creation or update of relevant documentation.`,
-            });
-            return { issueNumber: issue.number };
+            **PR Title:** ${{ github.event.pull_request.title }}
+            **PR Author:** @${{ github.event.pull_request.user.login }}
+            **PR Link:** ${{ github.event.pull_request.html_url }}
 
-      - name: Assign Issue to PR Author
-        if: github.event.label.name == 'doc'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = steps.create_issue.outputs.issueNumber;
-            const prAuthor = steps.pr_info.outputs.author;
-            await github.rest.issues.assign({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              assignees: [prAuthor],
-            });
-            console.log(`Assigned issue #${issueNumber} to ${prAuthor}`);
+            Please ensure all necessary documentation updates are completed.
+          assignees: ${{ github.event.pull_request.user.login }} # 指派给 PR 的作者
+          # 可选：你也可以给这个新创建的 issue 添加标签
+          # labels: documentation, todo
