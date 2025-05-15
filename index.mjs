@@ -10,3 +10,5 @@ transform('test.js', res, {
 		XMLHttpRequest: "undefined",
 	},
 })
+
+console.log('-------------------')
