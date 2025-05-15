@@ -1,0 +1,67 @@
+name: Create Doc Issue on Doc Label
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  create_doc_issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Check for Doc Label
+        if: github.event.label.name == 'doc'
+        run: echo "Doc label found."
+
+      - name: Get PR Details
+        if: github.event.label.name == 'doc'
+        uses: actions/github-script@v7
+        id: pr_info
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            return {
+              title: pr.data.title,
+              author: pr.data.user.login,
+            };
+
+      - name: Create Doc Issue
+        if: github.event.label.name == 'doc'
+        uses: actions/github-script@v7
+        id: create_issue
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prTitle = steps.pr_info.outputs.title;
+            const issueTitle = `Doc related to '${prTitle}'`;
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: `This issue was automatically created because the 'doc' label was added to the pull request: #${context.payload.pull_request.number}. It is intended to track the creation or update of relevant documentation.`,
+            });
+            return { issueNumber: issue.number };
+
+      - name: Assign Issue to PR Author
+        if: github.event.label.name == 'doc'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = steps.create_issue.outputs.issueNumber;
+            const prAuthor = steps.pr_info.outputs.author;
+            await github.rest.issues.assign({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              assignees: [prAuthor],
+            });
+            console.log(`Assigned issue #${issueNumber} to ${prAuthor}`);
